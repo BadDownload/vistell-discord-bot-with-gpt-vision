@@ -5,6 +5,7 @@ from discord.ext import commands
 import openai
 import asyncio
 import logging
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -30,6 +31,9 @@ MAX_TOKENS = int(os.getenv('MAX_TOKENS', 300))
 
 # Message prefix
 MESSAGE_PREFIX = os.getenv('MESSAGE_PREFIX', "Image Description:")
+
+# Flag to determine if the bot should reply to image links
+REPLY_TO_LINKS = os.getenv('REPLY_TO_LINKS', 'true').lower() == 'true'
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -98,12 +102,12 @@ async def on_message(message):
 
     # Check if no specific channels are specified or if the message is in one of the specified channels
     if not CHANNEL_IDS or message.channel.id in CHANNEL_IDS:
-        # Check if the message contains attachments
+        # Process attachments if any
         if message.attachments:
             for attachment in message.attachments:
                 if any(attachment.filename.lower().endswith(ext) for ext in ['jpg', 'jpeg', 'png', 'gif']):
                     description_chunks = await describe_image(attachment.url)
-                    
+
                     original_message = None  # Store the original message containing the image attachment
                     
                     # Send each description chunk as a separate message
@@ -125,6 +129,41 @@ async def on_message(message):
                             # Wait for a short delay before sending the next message to avoid rate-limiting
                             await asyncio.sleep(1)
                             chunk = chunk[1800:]
+
+        # Process image links if enabled
+        if REPLY_TO_LINKS:
+            # Extract URLs from the message content
+            message_content = message.content.lower()  # Convert message content to lowercase for case-insensitive matching
+            urls = re.findall(r'(https?://[^\s]+)', message_content)
+
+            # Filter out URLs ending with supported image file extensions
+            image_urls = [url for url in urls if url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))]
+
+            # Process each image URL
+            for image_url in image_urls:
+                description_chunks = await describe_image(image_url)
+
+                original_message = None  # Store the original message containing the image attachment
+                
+                # Send each description chunk as a separate message
+                for i, chunk in enumerate(description_chunks):
+                    # Split message into multiple parts if exceeds the character limit
+                    while chunk:
+                        # Truncate the chunk to fit within the Discord message length limit
+                        truncated_chunk = chunk[:1800]
+                        # Send the message as a reply to the original message
+                        if i == 0:
+                            original_message = await message.reply(f"{MESSAGE_PREFIX} {truncated_chunk}")
+                            logger.info("Sending message to Discord...")
+                            logger.info("Message sent successfully.")
+                        else:
+                            # Send subsequent messages as replies to the original message
+                            await original_message.reply(truncated_chunk)
+                            logger.info("Sending message to Discord...")
+                            logger.info("Message sent successfully.")
+                        # Wait for a short delay before sending the next message to avoid rate-limiting
+                        await asyncio.sleep(1)
+                        chunk = chunk[1800:]
 
 # Run the bot
 bot.run(DISCORD_BOT_TOKEN)
