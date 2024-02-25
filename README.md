@@ -108,6 +108,10 @@ Review your `.env` file and choose your settings. If you change your mind later,
 
 ## Frequently Asked Questions
 
+### Why name this "Vistell"?
+
+It's a vision bot that can tell you things, so I named it Vistell.
+
 ### Why did you build this bot?
 
 I wanted a Discord bot that leveraged OpenAI's Vision API. I didn't find any existing bots that supported that functionality. I was also curious if ChatGPT could write the code for such a bot. This was a fun project that provided an excuse to have ChatGPT write code, with a specific use-case for the code in mind.
