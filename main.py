@@ -105,7 +105,7 @@ async def on_message(message):
         # Process attachments if any
         if message.attachments:
             for attachment in message.attachments:
-                if any(attachment.filename.lower().endswith(ext) for ext in ['jpg', 'jpeg', 'png', 'gif']):
+                if any(attachment.filename.lower().endswith(ext) for ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']):
                     description_chunks = await describe_image(attachment.url)
 
                     original_message = None  # Store the original message containing the image attachment
@@ -137,7 +137,7 @@ async def on_message(message):
             urls = re.findall(r'(https?://[^\s]+)', message_content)
 
             # Filter out URLs ending with supported image file extensions
-            image_urls = [url for url in urls if url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))]
+            image_urls = [url for url in urls if url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))]
 
             # Process each image URL
             for image_url in image_urls:
